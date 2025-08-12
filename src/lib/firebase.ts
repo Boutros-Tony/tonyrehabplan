@@ -21,8 +21,7 @@ function hasConfig(): boolean {
 // We type as unknown here to avoid bringing firebase types before install
 export async function getFirebaseApp(): Promise<unknown | null> {
   if (!hasConfig()) return null;
-  // @ts-expect-error dynamic import to avoid type resolution before package install
-  const { initializeApp, getApps } = await import("firebase/app");
+  const { initializeApp, getApps } = (await import("firebase/app")) as any;
   if (!getApps().length) {
     initializeApp(firebaseConfig as unknown as Record<string, unknown>);
   }
@@ -32,7 +31,6 @@ export async function getFirebaseApp(): Promise<unknown | null> {
 export async function getDb(): Promise<unknown | null> {
   const app = await getFirebaseApp();
   if (!app) return null;
-  // @ts-expect-error dynamic import
-  const { getDatabase } = await import("firebase/database");
+  const { getDatabase } = (await import("firebase/database")) as any;
   return getDatabase(app);
 }

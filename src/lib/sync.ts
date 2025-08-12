@@ -5,11 +5,11 @@ import { getOrCreateClientId } from "@/lib/id";
 import { PlanState } from "@/lib/types";
 
 export function subscribeState(uid: string, onRemote: (s: PlanState) => void) {
-  getDb().then(async (db) => {
+  getDb().then(async (db: any) => {
     if (!db) return;
     const { ref, onValue } = await import("firebase/database");
     // Single-user app path
-    const stateRef = ref(db, `singleUser/state`);
+    const stateRef = ref(db as any, `singleUser/state`);
     onValue(stateRef, (snap) => {
       const val = snap.val();
       if (val) onRemote(val as PlanState);
@@ -20,10 +20,10 @@ export function subscribeState(uid: string, onRemote: (s: PlanState) => void) {
 
 let lastPushedAt = 0;
 export async function pushState(uid: string, state: PlanState) {
-  const db = await getDb();
+  const db: any = await getDb();
   if (!db) return;
   const { ref, set, serverTimestamp } = await import("firebase/database");
-  const stateRef = ref(db, `singleUser/state`);
+  const stateRef = ref(db as any, `singleUser/state`);
   lastPushedAt = Date.now();
   await set(stateRef, { ...state, _ts: serverTimestamp() });
 }
