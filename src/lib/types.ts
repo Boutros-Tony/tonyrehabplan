@@ -40,6 +40,7 @@ export interface LogEntry {
 
 export interface PlanSettings {
   currentWeek: number; // 1..8+
+  calmPec?: boolean;
 }
 
 export interface PlanState {

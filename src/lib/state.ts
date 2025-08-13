@@ -9,6 +9,7 @@ export function defaultState(): PlanState {
   return {
     settings: {
       currentWeek: 1,
+      calmPec: false,
     },
     logs: {},
     lastDate: todayStr,
@@ -16,13 +17,31 @@ export function defaultState(): PlanState {
   } as PlanState;
 }
 
+export function sanitizeState(
+  input: Partial<PlanState> | null | undefined
+): PlanState {
+  const base = defaultState();
+  const s: any = { ...(input || {}) };
+  const settings =
+    s.settings && typeof s.settings === "object" ? s.settings : {};
+  const logs = s.logs && typeof s.logs === "object" ? s.logs : {};
+  return {
+    settings: {
+      currentWeek: Number(settings.currentWeek) || base.settings.currentWeek,
+    },
+    logs: logs as PlanState["logs"],
+    lastDate: typeof s.lastDate === "string" ? s.lastDate : base.lastDate,
+    lastDay: s.lastDay || base.lastDay,
+  };
+}
+
 export function loadState(): PlanState {
   if (typeof window === "undefined") return defaultState();
   try {
     const raw = localStorage.getItem(PLAN_KEY);
     if (!raw) return defaultState();
-    const obj = JSON.parse(raw) as PlanState;
-    return { ...defaultState(), ...obj };
+    const obj = JSON.parse(raw) as Partial<PlanState>;
+    return sanitizeState({ ...defaultState(), ...obj });
   } catch {
     return defaultState();
   }
@@ -38,7 +57,7 @@ export function ensureLog(
   date: string,
   day: SessionDay
 ): PlanState {
-  const existing = state.logs[date];
+  const existing = state.logs?.[date];
   const entry: LogEntry = existing ?? {
     session: day,
     completed: false,
@@ -63,14 +82,15 @@ export function parseNumber(v: string | number | null | undefined): number {
 }
 
 export function countCompletedSessions(state: PlanState): number {
-  return Object.values(state.logs).filter((l) => l?.completed).length;
+  const logs = state?.logs || {};
+  return Object.values(logs).filter((l) => l && (l as any).completed).length;
 }
 
 export function avgPain7d(state: PlanState): string | null {
   const now = new Date();
   const cutoff = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
   const pains: number[] = [];
-  for (const [date, entry] of Object.entries(state.logs)) {
+  for (const [date, entry] of Object.entries(state?.logs || {})) {
     if (!entry || !entry.sets) continue;
     const d = new Date(date);
     if (d >= cutoff) {

@@ -62,7 +62,7 @@ export function OverviewSection({
           <div className="bg-white border border-gray-200 rounded-lg p-3">
             <div className="text-xs text-gray-500">Current Week</div>
             <div className="text-xl font-semibold">
-              {String(state.settings.currentWeek)}
+              {String(state?.settings?.currentWeek ?? 1)}
             </div>
           </div>
           <div className="bg-white border border-gray-200 rounded-lg p-3">
@@ -162,6 +162,20 @@ export function OverviewSection({
               or loss of ROM/strength: pause pressing and consult your
               clinician.
             </div>
+            <div className="mt-3">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={Boolean(state.settings.calmPec)}
+                  onChange={(e) => {
+                    state.settings.calmPec = e.target.checked;
+                    saveState(state);
+                    window.dispatchEvent(new Event("storage"));
+                  }}
+                />
+                Calm pec‑minor mode (2 weeks): gentler mobility, swap Y, press in shorter ROM
+              </label>
+            </div>
           </Panel>
         </div>
         <OverviewCharts />
@@ -177,11 +191,15 @@ export function TodaySection({
   state: ReturnType<typeof loadState>;
   setState: (s: any) => void;
 }) {
-  const [date, setDate] = React.useState(
-    state.lastDate ?? toDateInput(new Date())
+  const [date, setDate] = React.useState<string>(
+    state?.lastDate || toDateInput(new Date())
   );
-  const [day, setDay] = React.useState(state.lastDay ?? suggestDay(new Date()));
-  const [week, setWeek] = React.useState(state.settings.currentWeek);
+  const [day, setDay] = React.useState(
+    state?.lastDay || suggestDay(new Date())
+  );
+  const [week, setWeek] = React.useState<number>(
+    state?.settings?.currentWeek || 1
+  );
 
   React.useEffect(() => {
     setState((prev: any) => ensureLog(prev, date, day));
@@ -193,6 +211,19 @@ export function TodaySection({
       (e.day === day || (day === "Daily" && e.category === "Mobility")) &&
       e.phases.includes(phase)
   );
+
+  // Adjust list when Calm Pec mode is on
+  const adjusted = React.useMemo(() => {
+    let list = todays;
+    if (state.settings.calmPec) {
+      list = list.filter((ex) => ex.id !== "prone_ity"); // remove Y/T cluster
+      // Replace with wall slides if Daily
+      if (day === "Daily") {
+        list = list.filter((ex) => ex.id !== "pec_minor");
+      }
+    }
+    return list;
+  }, [todays, state.settings.calmPec, day]);
 
   function addSet(ex: Exercise, refs: HTMLInputElement[]) {
     const [repsEl, wtEl, painEl, rpeEl] = refs;
@@ -208,7 +239,12 @@ export function TodaySection({
         pain: isNaN(pain) ? null : pain,
         rpe: isNaN(rpe) ? null : rpe,
       };
-      const log = prev.logs[date]!;
+      const log = prev.logs?.[date] || {
+        session: day,
+        completed: false,
+        sets: {},
+        notes: {},
+      };
       const nextSets = [...(log.sets[ex.id] ?? []), entry];
       const next = {
         ...prev,
@@ -226,7 +262,12 @@ export function TodaySection({
   function clearEx(id: string, name: string) {
     if (!confirm(`Clear sets/notes for "${name}" on ${date}?`)) return;
     setState((prev: any) => {
-      const log = prev.logs[date]!;
+      const log = prev.logs?.[date] || {
+        session: day,
+        completed: false,
+        sets: {},
+        notes: {},
+      };
       const { [id]: _, ...restSets } = log.sets;
       const { [`${id}_done`]: __, [id]: ___, ...restNotes } = log.notes as any;
       const next = {
@@ -243,7 +284,12 @@ export function TodaySection({
 
   function markExDone(id: string) {
     setState((prev: any) => {
-      const log = prev.logs[date]!;
+      const log = prev.logs?.[date] || {
+        session: day,
+        completed: false,
+        sets: {},
+        notes: {},
+      };
       const next = {
         ...prev,
         logs: {
@@ -308,12 +354,12 @@ export function TodaySection({
       </div>
 
       <div className="mt-4 space-y-4">
-        {todays.length === 0 && (
+        {adjusted.length === 0 && (
           <div className="text-sm text-white/60">
             No exercises scheduled for this day/phase.
           </div>
         )}
-        {todays.map((ex) => (
+        {adjusted.map((ex) => (
           <ExerciseRow
             key={ex.id}
             ex={ex}
@@ -579,7 +625,9 @@ export function LogsSection({
 }: {
   state: ReturnType<typeof loadState>;
 }) {
-  const dates = Object.keys(state.logs).sort().reverse();
+  const dates = Object.keys(state?.logs || {})
+    .sort()
+    .reverse();
   return (
     <Panel>
       {!dates.length && (
@@ -587,13 +635,14 @@ export function LogsSection({
       )}
       <div className="grid gap-3">
         {dates.map((date) => {
-          const entry = state.logs[date]!;
-          const setsCount = Object.values(entry.sets).reduce(
+          const entry = state?.logs?.[date];
+          if (!entry) return null;
+          const setsCount = Object.values(entry.sets || {}).reduce(
             (a, s) => a + (s?.length || 0),
             0
           );
           const painVals: number[] = [];
-          Object.values(entry.sets).forEach((arr) =>
+          Object.values(entry.sets || {}).forEach((arr) =>
             (arr || []).forEach((s) => {
               if (s.pain != null) painVals.push(s.pain);
             })
@@ -612,7 +661,7 @@ export function LogsSection({
               </div>
               <div className="h-px bg-white/10 my-3" />
               <div className="grid gap-2 text-sm">
-                {Object.entries(entry.sets).map(([exId, sets]) => {
+                {Object.entries(entry.sets || {}).map(([exId, sets]) => {
                   const ex =
                     exercises.find((e) => e.id === exId) ||
                     ({ name: exId } as Exercise);

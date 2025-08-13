@@ -10,14 +10,20 @@ import {
   SettingsSection,
 } from "@/components/Sections";
 import Nutrition from "@/components/Nutrition";
-import { defaultState, loadState } from "@/lib/state";
+import { defaultState, loadState, sanitizeState } from "@/lib/state";
 import { Panel } from "@/components/ui";
 import Sidebar from "@/components/Sidebar";
 import { getClientId, pushState, subscribeState } from "@/lib/sync";
 
 export default function Home() {
   const [tab, setTab] = React.useState("overview");
-  const [state, setState] = React.useState(loadState());
+  const [state, setState] = React.useState(() => {
+    try {
+      return loadState();
+    } catch {
+      return defaultState();
+    }
+  });
   const uidRef = React.useRef<string | null>(null);
   const [mounted, setMounted] = React.useState(false);
 
@@ -36,8 +42,7 @@ export default function Home() {
     uidRef.current = getClientId();
     const uid = uidRef.current;
     const unsub = subscribeState(uid, (remote) => {
-      // Merge remote into local (simple replace for now)
-      setState(remote);
+      setState((prev) => sanitizeState(remote));
     });
     return () => unsub();
   }, []);
@@ -68,6 +73,9 @@ export default function Home() {
             <div className="text-sm text-gray-600">
               12+ weeks post‑op progression with logging, videos, and
               pain‑guided loading.
+            </div>
+            <div className="md:hidden mt-3">
+              <HeaderTabs active={tab} setActive={setTab} />
             </div>
           </div>
           <div className="space-y-4">

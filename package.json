@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next build",
+    "export": "next build && touch out/.nojekyll",
     "deploy:gh": "npm run export && rm -rf gh-pages && mkdir gh-pages && cp -R out/* gh-pages || cp -R ./out gh-pages || true && touch out/.nojekyll && git add out -f && git commit -m 'chore: gh-pages export' || true && git subtree push --prefix out origin gh-pages"
   },
   "dependencies": {

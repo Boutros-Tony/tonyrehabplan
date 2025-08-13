@@ -32,9 +32,9 @@ export default function OverviewCharts() {
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
   }, []);
-  const dates = Object.keys(state.logs || {}).sort();
+  const dates = Object.keys(state?.logs || {}).sort();
   const painPoints: number[] = dates.map((d) => {
-    const entry = state.logs?.[d];
+    const entry = state?.logs?.[d];
     if (!entry || !entry.sets) return NaN;
     const vals: number[] = [];
     Object.values(entry.sets || {}).forEach((arr) =>
@@ -46,7 +46,7 @@ export default function OverviewCharts() {
     return Number((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2));
   });
   const sessions: number[] = dates.map((d) =>
-    state.logs?.[d]?.completed ? 1 : 0
+    state?.logs?.[d]?.completed ? 1 : 0
   );
 
   return (

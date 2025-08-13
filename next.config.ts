@@ -1,13 +1,13 @@
 import type { NextConfig } from "next";
 
-const isProd = process.env.NODE_ENV === "production";
+const isGh = process.env.NEXT_PUBLIC_BASE_PATH === "gh";
 
 const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
-  // Only add basePath on production (GitHub Pages)
-  basePath: isProd ? "/tonyrehabplan" : undefined,
-  assetPrefix: isProd ? "/tonyrehabplan/" : undefined,
+  // Add basePath only for GitHub Pages builds
+  basePath: isGh ? "/tonyrehabplan" : undefined,
+  assetPrefix: isGh ? "/tonyrehabplan/" : undefined,
   images: { unoptimized: true },
   eslint: { ignoreDuringBuilds: true },
 };
